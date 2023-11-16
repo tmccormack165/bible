@@ -1,0 +1,25 @@
+# initialize database and mysql user
+echo "CREATE USER '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';" | mysql 
+echo "CREATE DATABASE ${MYSQL_DATABASE}" | mysql
+echo "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO ${MYSQL_USER}@localhost;" | mysql
+
+# initialize config settings
+cd /var/www/html/BibleOL/myapp/config && \
+    cp database.php-dist database.php && \
+    sed -i -e "s/USERNAME/${MYSQL_USER}/g" database.php && \
+    sed -i -e "s/PASSWORD/${MYSQL_PASSWORD}/g" database.php && \
+    sed -i -e "s/DATABASE/${MYSQL_DATABASE}/g" database.php && \
+    cp ol.php-dist ol.php && \
+    sed -i -e "s/xxxxx@xxxxx.xx/${MAIL_SENDER_ADDRESS}/g" ol.php && \
+    echo "PW_SALT=${PW_SALT}" && \
+    PW_SALT=`date | md5sum | cut -c 1-8` && \
+    sed -i -e "s/'xxxxxxx'/'${PW_SALT}'/g" ol.php
+    cp config.php-dist config.php && \
+    sed -i -e "s@https://example.com@${BASE_URL}@g" config.php
+
+# setup database and run language script
+cd /var/www/html/BibleOL && \
+    mysql ${MYSQL_DATABASE} < bolsetup.sql && \
+    ./setup_lang.sh && \
+    cp .htaccess-dist .htaccess
+
